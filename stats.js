@@ -9,8 +9,8 @@ names = []
 class Text {
   constructor(text) {
     try {
-      this.sender = text.match(/\d\d(\.|-)\d\d(\.|-)\d\d\,?\s\d\d:\d\d:\d\d(\s(AM|PM))?\]\s.+?:/g)[0]
-      this.sender = this.sender.replace(/\d\d(\.|-)\d\d(\.|-)\d\d\,?\s\d\d:\d\d:\d\d(\s(AM|PM))?\]\s/g, "")
+      this.sender = text.match(/\d\d(\.|-)\d\d(\.|-)\d\d(\d\d)?\,?\s\d\d:\d\d:\d\d(\s(AM|PM))?\]\s.+?:/g)[0]
+      this.sender = this.sender.replace(/\d\d(\.|-)\d\d(\.|-)\d\d(\d\d)?\,?\s\d\d:\d\d:\d\d(\s(AM|PM))?\]\s/g, "")
       this.sender = this.sender.replace(":", "");
     } catch (error) {
       console.log(error)
@@ -30,7 +30,7 @@ class Text {
       })
     }
 
-    this.date = text.match(/\d\d(\.|-)\d\d(\.|-)\d\d/g)[0];
+    this.date = text.match(/\d\d(\.|-)\d\d(\.|-)\d\d(\d\d)?/g)[0];
     this.time = text.match(/\d:\d\d:\d\d(\s(AM|PM))?/g)[0];
 
     let regex1 = new RegExp("\\]\\s.+:\\s[^]*")
@@ -59,7 +59,7 @@ function getFile(evt) {
 function splitToObjects(text) {
   var allTexts = text.split(/\[/g);
   allTexts.forEach(function(val) {
-    if (val.match(/\d\d(\.|-)\d\d(\.|-)\d\d,?\s\d\d:\d\d:\d\d(\s(AM|PM))?\]\s.+:\s.*/g)) {
+    if (val.match(/\d\d(\.|-)\d\d(\.|-)\d\d(\d\d)?,?\s\d\d:\d\d:\d\d(\s(AM|PM))?\]\s.+:\s.*/g)) {
       texts.push(new Text(val));
     } else {
       errors.push(val);
