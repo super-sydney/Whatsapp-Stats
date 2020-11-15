@@ -1,100 +1,145 @@
-var counter = 0, errors = [];
-class Text{
-	constructor(text){
-		this.sender = text.match(/\]\s(Sydney|Isabella):/g)[0].replace("] ", "").replace(":", "");
-		this.date = text.match(/\d\d\.\d\d\.\d\d/g)[0];
-		this.time = text.match(/\d:\d\d:\d\d\s(AM|PM)/g)[0];
-		this.message = text.match(/\]\s(Sydney|Isabella):\s[^]*/g)[0].replace(/\]\s(Isabella|Sydney):\s/g, "");
-	}
+var counter = 0,
+  errors = [];
+
+texts = []
+results = []
+names = []
+
+
+class Text {
+  constructor(text) {
+    try {
+      this.sender = text.match(/\d\d(\.|-)\d\d(\.|-)\d\d\,?\s\d\d:\d\d:\d\d(\s(AM|PM))?\]\s.+?:/g)[0]
+      this.sender = this.sender.replace(/\d\d(\.|-)\d\d(\.|-)\d\d\,?\s\d\d:\d\d:\d\d(\s(AM|PM))?\]\s/g, "")
+      this.sender = this.sender.replace(":", "");
+    } catch (error) {
+      console.log(error)
+      console.log(text)
+    }
+
+    if (!names.includes(this.sender)) {
+      names.push(this.sender)
+      results.push({
+        sender: this.sender,
+        messages: 0,
+        averageMessage: 0,
+        averageWords: 0,
+        charsTyped: 0,
+        wordsTyped: 0,
+        times: new Array(24).fill(0)
+      })
+    }
+
+    this.date = text.match(/\d\d(\.|-)\d\d(\.|-)\d\d/g)[0];
+    this.time = text.match(/\d:\d\d:\d\d(\s(AM|PM))?/g)[0];
+
+    let regex1 = new RegExp("\\]\\s.+:\\s[^]*")
+    let regex2 = new RegExp("\\]\\s.+:\\s")
+    this.message = text.match(regex1)[0].replace(regex2, "");
+
+    this.time = parseInt(text.match(/\d\d:/)[0].replace(":", ""));
+  }
 }
 
 function getFile(evt) {
-    var file = evt.target.files[0];
-    if (file) {
-        var r = new FileReader();
-        r.onload = function(e) {
-            var contents = e.target.result;
-            text = r.result;
-            splitToObjects(text);
-        }
-        r.readAsText(file);
-    } else {
-        alert("Failed to load file");
+  var file = evt.target.files[0];
+  if (file) {
+    var r = new FileReader();
+    r.onload = function(e) {
+      var contents = e.target.result;
+      text = r.result;
+      splitToObjects(text);
     }
+    r.readAsText(file);
+  } else {
+    alert("Failed to load file");
+  }
 }
 
-function splitToObjects(text){
-	var allTexts = text.split(/\[/g), output = [];
-	allTexts.forEach(function(val){
-		if(val.match(/\d\d\.\d\d\.\d\d,\s\d{1,2}:\d\d:\d\d\s(AM|PM)\]\s(Sydney|Isabella):\s[^]*/g)){
-			output.push(new Text(val));
-		}else{
-			errors.push(val);
-		}
-	});
+function splitToObjects(text) {
+  var allTexts = text.split(/\[/g);
+  allTexts.forEach(function(val) {
+    if (val.match(/\d\d(\.|-)\d\d(\.|-)\d\d,?\s\d\d:\d\d:\d\d(\s(AM|PM))?\]\s.+:\s.*/g)) {
+      texts.push(new Text(val));
+    } else {
+      errors.push(val);
+    }
+  });
 
-	//console.log(output);
-	//console.log(errors)
-	parseOutput(output);
+  //console.log(errors)
+  parseOutput(texts);
 }
 
-function parseOutput(output){
-	resultsBella = {
-		messages: 0,
-		averageMessage: 0,
-		averageWords: 0,
-		charsTyped: 0,
-		wordsTyped: 0
-	}
+function parseOutput(output) {
+  output.forEach(function(val) {
+    let index = 0;
 
-	resultsSydney = {
-		messages: 0,
-		averageMessage: 0,
-		averageWords: 0,
-		charsTyped: 0,
-		wordsTyped: 0
-	}
+    for (let i = 0; i < names.length; i++) {
+      if (val.sender === names[i]) {
+        break;
+      }
+      index++;
+    }
 
-	output.forEach(function(val){
-		if (val !== "Bild weggelassen" && val !== "Nachrichten in diesem Chat sowie Anrufe sind jetzt mit Ende-zu-Ende-Verschlüsselung geschützt."){
-			if (val.sender === "Sydney"){
-				resultsSydney.messages++;
-				resultsSydney.charsTyped += val.message.length;
+    results[index].messages++;
+    results[index].charsTyped += val.message.length;
 
-				let words = val.message.split(" ");
-				resultsSydney.wordsTyped += words.length;
-			}else if (val.sender === "Isabella"){
-				resultsBella.messages++;
-				resultsBella.charsTyped += val.message.length;
+    let words = val.message.split(" ");
+    results[index].wordsTyped += words.length;
 
-				let words = val.message.split(" ");
-				resultsBella.wordsTyped += words.length;
-			}
-		}
+    if (val.time < 24) {
+      results[index].times[val.time]++;
 
-		resultsSydney.averageMessage = resultsSydney.charsTyped/resultsSydney.messages; //average characters per message
-		resultsSydney.averageWords = resultsSydney.wordsTyped/resultsSydney.messages; //average words per message
+    }
+  })
+  //console.log(results)
 
-		resultsBella.averageMessage = resultsBella.charsTyped/resultsBella.messages; //average characters per message
-		resultsBella.averageWords = resultsBella.wordsTyped/resultsBella.messages; //average words per message
-	})
+  results.forEach(function(val) {
+    val.averageMessage = val.charsTyped / val.messages; //average characters per message
+    val.averageWords = val.wordsTyped / val.messages; //average words per message
+    document.getElementById("output").innerHTML +=
+      "<h1>" + val.sender + ":</h1><br>Amount of messages: " + val.messages +
+      "<br>Average characters per message: " + val.averageMessage +
+      "<br>Average words per message " + val.averageWords +
+      "<br>Characters typed: " + val.charsTyped +
+      "<br>Words typed: " + val.wordsTyped + "<br>";
+  })
 
-	document.getElementById("output").innerHTML = 
+  makeGraphs()
+}
 
-	"<h1>Sydney:</h1><br>Amount of messages: " + resultsSydney.messages + 
-		"<br>Average characters per message: " + resultsSydney.averageMessage +
-			  "<br>Average words per message " + resultsSydney.averageWords +
-					  "<br>Characters typed: " + resultsSydney.charsTyped +
-						   "<br>Words typed: " + resultsSydney.wordsTyped +
+function makeGraphs() {
+  var messageCount = document.getElementById("messageCount").getContext("2d")
 
-	"<h1>Bella:</h1><br>Amount of messages: " + resultsBella.messages + 
-	   "<br>Average characters per message: " + resultsBella.averageMessage +
-			 "<br>Average words per message " + resultsBella.averageWords +
-				     "<br>Characters typed: " + resultsBella.charsTyped +
-				   	      "<br>Words typed: " + resultsBella.wordsTyped;
+  var data = {
+    datasets: [{
+      data: [],
+      backgroundColor: [],
+      hoverBackgroundColor: []
+    }],
+    labels: []
+  }
 
-	//console.log(resultsSydney)
-	//console.log(resultsBella)
+  results.forEach(function(val) {
+    data.datasets[0].data.push(val.messages)
+    let r = random(0, 255),
+      g = random(0, 255),
+      b = random(0, 255);
+    data.datasets[0].backgroundColor.push("rgba(" + r + "," + g + "," + b + ", 0.8)")
+    data.datasets[0].hoverBackgroundColor.push("rgba(" + r + "," + g + "," + b + ", 1)")
+    data.labels.push(val.sender)
+  })
+  //var options = {}
+
+  var graph = new Chart(messageCount, {
+    type: "pie",
+    data: data
+    //options: options
+  })
+}
+
+function random(min, max) {
+  return Math.random() * (max - min) + min
 }
 
 document.getElementById("file").addEventListener("change", getFile, false)
